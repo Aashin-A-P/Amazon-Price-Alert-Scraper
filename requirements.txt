@@ -1,11 +1,3 @@
 beautifulsoup4
 requests
 pandas
-smtplib
-time
-datetime
-random
-streamlit
-csv
-os
-threading
