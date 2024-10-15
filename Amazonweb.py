@@ -8,6 +8,7 @@ import streamlit as st
 import csv
 import os
 import threading
+import pandas as pd
 
 
 def send_mail(email_id, product_name, current_price):
@@ -83,11 +84,11 @@ def checkprice(URL, email_id, threshold):
             if not os.path.isfile('AmazonWebScraperData.csv'):
                 with open('AmazonWebScraperData.csv', 'w', newline='', encoding="UTF8") as f:
                     writer = csv.writer(f)
-                    writer.writerow(['title', 'price', 'Date'])  # Write header
+                    writer.writerow(['email_id', 'title', 'price', 'date'])
 
             with open('AmazonWebScraperData.csv', 'a+', newline='', encoding="UTF8") as f:
                 writer = csv.writer(f)
-                writer.writerow([title, price2, today])
+                writer.writerow([email_id, title, price2, today])
 
             if price2 <= threshold:
                 send_mail(email_id,title,price2)
@@ -98,9 +99,38 @@ def checkprice(URL, email_id, threshold):
 
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
+
+def dashboard_view(email_id):
+    try:
+        if os.path.isfile('AmazonWebScraperData.csv'):
+            df = pd.read_csv('AmazonWebScraperData.csv')
+
+            # Print column names to debug
+            st.write("CSV Columns:", df.columns)
+
+            # Filter by the provided email ID
+            user_data = df[df['email_id'] == email_id]
+
+            if not user_data.empty:
+                st.write(f"Tracking history for {email_id}:")
+                st.dataframe(user_data, use_container_width=True)
+            else:
+                st.warning("No tracking data found for this email.")
+        else:
+            st.warning("No tracking data available.")
+    except KeyError as e:
+        print("KeyError")
+
             
 def main():
     st.title("Amazon Price Tracker")
+
+    email_id = st.text_input("Enter Your Email ID to View Tracking History")
+    if st.button("View History"):
+        if email_id:
+            dashboard_view(email_id)
+        else:
+            st.error("Please enter your email ID.")
 
     url = st.text_input("Enter Product URL")
     threshold = st.number_input("Enter Price Threshold", min_value=0)
