@@ -57,9 +57,16 @@ def checkprice(URL, email_id, threshold):
         'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
     }
 
+    start_time = datetime.datetime.now()  # Track when the tracker started
+    max_duration = datetime.timedelta(weeks=2)  # 2 weeks
+
     while True:
 
         try:
+            elapsed_time = datetime.datetime.now() - start_time
+            if elapsed_time > max_duration:
+                print("Tracking period of 2 weeks is over. Stopping tracker.")
+                break
             page = requests.get(URL, headers=headers)
             Soup1 = BeautifulSoup(page.content, "html.parser")
             page.encoding = 'utf-8'
@@ -92,21 +99,6 @@ def checkprice(URL, email_id, threshold):
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             
-
-
-def start_tracking(url, email_id, threshold):
-    """Function to manage continuous tracking."""
-    with st.spinner("Checking price..."):
-        try:
-            while True:
-                checkprice(url, email_id, threshold)
-                st.success("Price checked. Email sent if applicable.")
-                time.sleep(60)  # Wait for 1 minute before the next check
-        except AttributeError:
-            st.warning("Could not find the product title or price. Retrying...")
-        except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
-
 def main():
     st.title("Amazon Price Tracker")
 
@@ -120,7 +112,7 @@ def main():
             tracking_thread = threading.Thread(target=checkprice, args=(url, email_id, threshold))
             tracking_thread.daemon = True  # Allows the thread to exit when the main program exits
             tracking_thread.start()
-            st.success("Started tracking the price. You'll receive an email when it drops below your threshold.")
+            st.success("Started tracking the price. You'll receive an email when it drops below your threshold for the next 2 weeks.")
         else:
             st.error("Please fill all fields.")
 
