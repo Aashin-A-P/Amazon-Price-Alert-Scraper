@@ -10,17 +10,19 @@ import os
 import threading
 
 
-def send_mail(email_id):
+def send_mail(email_id, product_name, current_price):
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    server.ehlo()
     server.login("apaashin@gmail.com", "qupm xsyd nsgy aciz")
 
     subject = "Price Alert: Your Product"
-    body = "The price of the product you are tracking has dropped below your threshold."
+    body = (f"The price of the product '{product_name}' has dropped below your threshold.\n"
+            f"Current price: ₹{current_price}")
 
     msg = f"Subject: {subject}\n\n{body}"
-    server.sendmail("apaashin@gmail.com", email_id, msg)
+    server.sendmail("apaashin@gmail.com", email_id, msg.encode('utf-8'))
+    print("Email sent successfully")
     server.quit()
+
 
 
 def checkprice(URL, email_id, threshold):
@@ -56,33 +58,54 @@ def checkprice(URL, email_id, threshold):
     }
 
     while True:
-        page = requests.get(URL, headers=headers)
-        Soup1 = BeautifulSoup(page.content, "html.parser")
 
-        title = Soup1.find(id='productTitle').get_text().strip()
-        price = Soup1.find('span', class_='a-price-whole').get_text().strip()
+        try:
+            page = requests.get(URL, headers=headers)
+            Soup1 = BeautifulSoup(page.content, "html.parser")
+            page.encoding = 'utf-8'
+            title = Soup1.find(id='productTitle').get_text().strip()
+            price = Soup1.find('span', class_='a-price-whole').get_text().strip()
 
-        if title is None or price is None:
-            raise AttributeError("Could not find the product title or price.")
+            if title is None or price is None:
+                raise AttributeError("Could not find the product title or price.")
 
-        price2 = int(''.join(filter(str.isdigit, price)))
+            price2 = int(''.join(filter(str.isdigit, price)))
 
-        # Log data to CSV
-        today = datetime.date.today()
-        if not os.path.isfile('AmazonWebScraperData.csv'):
-            with open('AmazonWebScraperData.csv', 'w', newline='', encoding="UTF8") as f:
+            # Log data to CSV
+            today = datetime.date.today()
+            if not os.path.isfile('AmazonWebScraperData.csv'):
+                with open('AmazonWebScraperData.csv', 'w', newline='', encoding="UTF8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(['title', 'price', 'Date'])  # Write header
+
+            with open('AmazonWebScraperData.csv', 'a+', newline='', encoding="UTF8") as f:
                 writer = csv.writer(f)
-                writer.writerow(['title', 'price', 'Date'])  # Write header
+                writer.writerow([title, price2, today])
 
-        with open('AmazonWebScraperData.csv', 'a+', newline='', encoding="UTF8") as f:
-            writer = csv.writer(f)
-            writer.writerow([title, price2, today])
+            if price2 <= threshold:
+                send_mail(email_id,title,price2)
+            time.sleep(60)
 
-        if price2 <= threshold:
-            send_mail(email_id)
+        except AttributeError as e:
+            print(f"{e}. Retrying immediately...")
 
-        time.sleep(60)  # Check every minute
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            
 
+
+def start_tracking(url, email_id, threshold):
+    """Function to manage continuous tracking."""
+    with st.spinner("Checking price..."):
+        try:
+            while True:
+                checkprice(url, email_id, threshold)
+                st.success("Price checked. Email sent if applicable.")
+                time.sleep(60)  # Wait for 1 minute before the next check
+        except AttributeError:
+            st.warning("Could not find the product title or price. Retrying...")
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {e}")
 
 def main():
     st.title("Amazon Price Tracker")
