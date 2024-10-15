@@ -140,13 +140,6 @@ def dashboard_view(email_id):
 def main():
     st.title("Amazon Price Tracker")
 
-    email_id = st.text_input("Enter Your Email ID to View Tracking History")
-    if st.button("View History"):
-        if email_id:
-            dashboard_view(email_id)
-        else:
-            st.error("Please enter your email ID.")
-
     url = st.text_input("Enter Product URL")
     threshold = st.number_input("Enter Price Threshold", min_value=0)
     email_id = st.text_input("Enter Your Email ID")
