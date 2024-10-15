@@ -24,6 +24,19 @@ def send_mail(email_id, product_name, current_price):
     print("Email sent successfully")
     server.quit()
 
+def send_regret_mail(email_id,product_name):
+    server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+    server.login("apaashin@gmail.com", "qupm xsyd nsgy aciz")
+
+    subject = "Price Tracking Session Ended"
+    body = (f"The price tracking session of the product '{product_name}' has ended.\n")
+
+    msg = f"Subject: {subject}\n\n{body}"
+    server.sendmail("apaashin@gmail.com", email_id, msg.encode('utf-8'))
+    print("Regret Email sent successfully")
+    server.quit()
+    
+
 
 
 def checkprice(URL, email_id, threshold):
@@ -65,9 +78,6 @@ def checkprice(URL, email_id, threshold):
 
         try:
             elapsed_time = datetime.datetime.now() - start_time
-            if elapsed_time > max_duration:
-                print("Tracking period of 2 weeks is over. Stopping tracker.")
-                break
             page = requests.get(URL, headers=headers)
             Soup1 = BeautifulSoup(page.content, "html.parser")
             page.encoding = 'utf-8'
@@ -89,6 +99,11 @@ def checkprice(URL, email_id, threshold):
             with open('AmazonWebScraperData.csv', 'a+', newline='', encoding="UTF8") as f:
                 writer = csv.writer(f)
                 writer.writerow([email_id, title, price2, today])
+
+            if elapsed_time > max_duration:
+                print("Tracking period of 2 weeks is over. Stopping tracker.")
+                send_regret_mail(email_id,title)
+                break
 
             if price2 <= threshold:
                 send_mail(email_id,title,price2)
