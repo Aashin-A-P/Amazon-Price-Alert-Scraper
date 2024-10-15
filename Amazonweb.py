@@ -92,7 +92,7 @@ def checkprice(URL, email_id, threshold):
 
             if price2 <= threshold:
                 send_mail(email_id,title,price2)
-            time.sleep(60)
+            time.sleep(84600)
 
         except AttributeError as e:
             print(f"{e}. Retrying immediately...")
